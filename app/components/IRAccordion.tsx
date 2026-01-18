@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import JsonView from "@uiw/react-json-view";
 
 interface IRAccordionProps {
   data: any;
@@ -31,36 +32,18 @@ export function IRAccordion({ data }: IRAccordionProps) {
           </AccordionTrigger>
           <AccordionContent className="p-0">
             <div className="border-t border-gray-200 dark:border-gray-700 bg-[#f8fafc] dark:bg-[#0d1117]">
-              <div className="p-4 overflow-x-auto custom-scrollbar">
-                <pre className="font-mono text-xs leading-5 text-gray-800 dark:text-gray-300">
-                  {JSON.stringify(data, null, 2)
-                    .split("\n")
-                    .map((line, i) => {
-                      // 给 JSON 的不同部分添加颜色
-                      let coloredLine = line;
-                      // 键名（蓝色）
-                      coloredLine = coloredLine.replace(
-                        /"([^"]+)":/g,
-                        '<span class="text-[#007ef5]">"$1"</span>:',
-                      );
-                      // 字符串值（绿色）
-                      coloredLine = coloredLine.replace(
-                        /: "([^"]*)"/g,
-                        ': <span class="text-green-600 dark:text-green-400">"$1"</span>',
-                      );
-                      // 数字（橙色）
-                      coloredLine = coloredLine.replace(
-                        /: (\d+\.?\d*)/g,
-                        ': <span class="text-orange-600 dark:text-orange-400">$1</span>',
-                      );
-                      return (
-                        <div
-                          key={i}
-                          dangerouslySetInnerHTML={{ __html: coloredLine }}
-                        />
-                      );
-                    })}
-                </pre>
+              <div className="p-4 overflow-x-auto">
+                <JsonView
+                  value={data}
+                  collapsed={false}
+                  displayDataTypes={false}
+                  enableClipboard={false}
+                  style={{
+                    fontSize: "12px",
+                    lineHeight: "1.5",
+                    fontFamily: "monospace",
+                  }}
+                />
               </div>
             </div>
           </AccordionContent>

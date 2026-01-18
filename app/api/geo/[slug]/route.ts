@@ -4,17 +4,11 @@ import { htmlCleaner } from "@/lib/cleaner";
 import { irGenerator } from "@/lib/ir-generator";
 import { geoGenerator } from "@/lib/geo-generator";
 import { aiDetector } from "@/lib/ai-detector";
-import { getCachedIR } from "@/lib/cache";
 
 /**
  * GET /api/geo/[slug]
  *
- * GEO 页面访问入口（优化版）
- *
- * 改进：
- * 1. 使用缓存加速响应
- * 2. 使用优化后的 AI 检测器
- * 3. 提供更详细的检测信息（开发模式）
+ * GEO 页面访问入口
  *
  * 功能：
  * 1. 检测访问者是否为 AI/Bot
@@ -62,31 +56,21 @@ export async function GET(
     // 4. AI 访问：生成并返回 GEO HTML
     console.log(`[GEO] 为 AI 生成页面...`);
 
-    // 使用缓存获取 IR
-    let cached = false;
-    const ir = await getCachedIR(targetURL, async () => {
-      console.log(`[GEO] 缓存未命中，开始解析...`);
+    // Step 1: 清洗 HTML
+    const cleanedArticle = await htmlCleaner.clean(targetURL);
 
-      // Step 1: 清洗 HTML
-      const cleanedArticle = await htmlCleaner.clean(targetURL);
+    if (!htmlCleaner.validateArticle(cleanedArticle)) {
+      throw new Error("页面内容不足或无法解析");
+    }
 
-      if (!htmlCleaner.validateArticle(cleanedArticle)) {
-        throw new Error("页面内容不足或无法解析");
-      }
-
-      // Step 2: 生成 IR
-      return irGenerator.generate(cleanedArticle, targetURL);
-    });
-
-    cached = true; // 简化判断，实际可以通过检查是否执行了 factory 来判断
+    // Step 2: 生成 IR
+    const ir = irGenerator.generate(cleanedArticle, targetURL);
 
     // Step 3: 生成 GEO HTML
     const geoHTML = geoGenerator.generate(ir);
 
     const processingTime = Date.now() - startTime;
-    console.log(
-      `[GEO] 成功生成 GEO 页面，耗时: ${processingTime}ms，缓存: ${cached ? "可能" : "否"}`,
-    );
+    console.log(`[GEO] 成功生成 GEO 页面，耗时: ${processingTime}ms`);
 
     // 返回 GEO HTML
     return new NextResponse(geoHTML, {

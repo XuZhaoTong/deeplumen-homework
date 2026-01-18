@@ -13,9 +13,10 @@ interface StandardViewCardProps {
 
 export function StandardViewCard({ url, mockHTML }: StandardViewCardProps) {
   // 如果 HTML 太长，截断显示（可选）
-  const displayHTML = mockHTML.length > 10000 
-    ? mockHTML.slice(0, 10000) + "\n\n<!-- ... 内容过长，已截断 ... -->"
-    : mockHTML;
+  const displayHTML =
+    mockHTML.length > 10000
+      ? mockHTML.slice(0, 10000) + "\n\n<!-- ... 内容过长，已截断 ... -->"
+      : mockHTML;
 
   return (
     <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-gray-200 dark:border-gray-700 shadow-card overflow-hidden flex flex-col h-full">
@@ -68,12 +69,13 @@ export function StandardViewCard({ url, mockHTML }: StandardViewCardProps) {
                 </SyntaxHighlighter>
               </div>
             </BrowserMockup>
-            
+
             {/* 如果 HTML 被截断，显示提示 */}
             {mockHTML.length > 10000 && (
               <div className="bg-blue-50 dark:bg-blue-900/20 px-3 py-2 mt-3 rounded border border-blue-200 dark:border-blue-800">
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  ℹ️ 原始 HTML 共 {mockHTML.length.toLocaleString()} 字符，已显示前 10,000 字符
+                  ℹ️ 原始 HTML 共 {mockHTML.length.toLocaleString()}{" "}
+                  字符，已显示前 10,000 字符
                 </p>
               </div>
             )}
@@ -94,9 +96,9 @@ export function StandardViewCard({ url, mockHTML }: StandardViewCardProps) {
             <div className="bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 mt-3 rounded border border-yellow-200 dark:border-yellow-800">
               <p className="text-xs text-yellow-700 dark:text-yellow-300">
                 ⚠️ 某些网站可能不允许 iframe 嵌入，
-                <a 
-                  href={url} 
-                  target="_blank" 
+                <a
+                  href={url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="underline ml-1"
                 >
