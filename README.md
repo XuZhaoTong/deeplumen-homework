@@ -307,12 +307,12 @@ curl "http://localhost:3000/api/geo/example.com?format=geo"
 
 ### 核心技术栈
 
-| 技术 | 版本 | 用途 | 选择理由 |
+| 技术 | 版本   | 用途 | 选择理由 |
 |------|------|------|---------|
-| **Next.js** | 16 | React 框架 | • App Router 支持<br>• 内置 API Routes<br>• SSR/SSG 能力<br>• TypeScript 原生支持 |
-| **Mozilla Readability** | 0.6 | 内容提取 | • 成熟稳定<br>• Firefox 官方库<br>• 准确度高 |
-| **Cheerio** | 1.1 | HTML 解析 | • 性能优秀<br>• 服务端友好 |
-| **JSDOM** | 27 | DOM 模拟 | • Readability 依赖<br>• 完整的 DOM API |
+| **Next.js** | 16   | React 框架 | • App Router 支持<br>• 内置 API Routes<br>• SSR/SSG 能力<br>• TypeScript 原生支持 |
+| **Mozilla Readability** | 0.6  | 内容提取 | • 成熟稳定<br>• Firefox 官方库<br>• 准确度高 |
+| **Cheerio** | 1.1  | HTML 解析 | • 性能优秀<br>• 服务端友好 |
+| **linkedom** | 0.18 | DOM 模拟 | • Readability 依赖<br>• 完整的 DOM API |
 
 ### 为什么选择 Next.js？
 

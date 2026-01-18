@@ -1,7 +1,7 @@
 // lib/cleaner.ts
 
 import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
+import { parseHTML } from "linkedom";
 import type { ParsedArticle } from "./types";
 
 /**
@@ -83,9 +83,14 @@ export class HTMLCleaner {
     html: string,
     url: string,
   ): ParsedArticle | null {
-    // 创建虚拟 DOM
-    const dom = new JSDOM(html, { url });
-    const document = dom.window.document;
+    // 使用 linkedom 创建虚拟 DOM
+    const { document } = parseHTML(html);
+
+    // 为 document 设置 URL（Readability 需要）
+    Object.defineProperty(document, "documentURI", {
+      value: url,
+      writable: false,
+    });
 
     // 使用 Readability 解析
     const reader = new Readability(document, {
