@@ -320,34 +320,3 @@ function createHumanAccessPage(
     },
   });
 }
-
-/**
- * POST 方法 - 支持提交 URL
- */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> },
-) {
-  const body = await request.json();
-  const { url } = body;
-
-  if (url) {
-    // 创建新请求，添加 url 参数
-    const newURL = new URL(request.url);
-    newURL.searchParams.set("url", url);
-
-    return GET(
-      new NextRequest(newURL.toString(), {
-        headers: request.headers,
-      }),
-      { params },
-    );
-  }
-
-  return NextResponse.json(
-    {
-      error: "缺少 url 参数",
-    },
-    { status: 400 },
-  );
-}

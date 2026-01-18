@@ -110,31 +110,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-/**
- * GET /api/parse?url=xxx
- *
- * 也支持 GET 请求（方便测试）
- */
-export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get("url");
-
-  if (!url) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "缺少 url 参数",
-      } as ParseResponse,
-      { status: 400 },
-    );
-  }
-
-  // 转发到 POST 处理
-  return POST(
-    new NextRequest(request.url, {
-      method: "POST",
-      headers: request.headers,
-      body: JSON.stringify({ url }),
-    }),
-  );
-}

@@ -1,0 +1,508 @@
+openapi: 3.0.0
+info:
+  title: GEO 优化器 API
+  description: |
+    将标准网页转换为结构化、机器可读的格式,针对 LLM 和生成式搜索引擎进行优化
+    
+    ## 什么是 GEO?
+    
+    GEO (Generative Engine Optimization) 是一种针对生成式引擎的优化技术,通过以下方式提升页面对 AI 的友好性:
+    - 清洗网页噪音(广告、导航等)
+    - 提取核心内容并生成结构化数据
+    - 添加 JSON-LD 和 Schema.org 标记
+    - 简化样式,提高信噪比
+    
+    ## 处理流程
+    
+    ```
+    URL → HTML Cleaner → IR Generator → GEO Generator → GEO HTML
+    ```
+    
+    ## AI 访问检测
+    
+    系统支持多种方式识别 AI/Bot 访问:
+    - **User-Agent 检测**: 识别已知 AI 服务(GPTBot、ClaudeBot、Google-Extended 等)
+    - **自定义 Header**: `X-AI-Request: true` 或 `X-Bot-Type: llm`
+    - **Query 参数**: `?ai=true` 或 `?format=geo`
+
+  version: 1.0.0
+  contact:
+    name: GEO 优化器
+    url: https://github.com/XuZhaoTong/deeplumen-homework
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: 本地开发环境
+  - url: https://deeplumen-homework.vercel.app
+    description: 生产环境
+
+tags:
+  - name: Parse
+    description: 解析和转换 API
+  - name: GEO
+    description: GEO 优化页面访问
+
+paths:
+  /api/parse:
+    post:
+      tags:
+        - Parse
+      summary: 解析 URL 并生成 IR 和 GEO HTML
+      description: |
+        核心 API,完整处理流程:
+        1. 获取并清洗目标 URL 的 HTML
+        2. 生成中间表示(IR)
+        3. 生成 GEO 优化的 HTML
+        
+        **推荐用于**: 一次性获取完整处理结果
+      operationId: parseUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: 要解析的目标 URL
+                  example: https://example.com/article
+            examples:
+              news-article:
+                summary: 新闻文章
+                value:
+                  url: https://news.qq.com/rain/a/20260117A05C9M00
+              blog-post:
+                summary: 博客文章
+                value:
+                  url: https://juejin.cn/post/7504486902692167689?utm_source=gold_browser_extension
+      responses:
+        '200':
+          description: 解析成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParseResponse'
+              examples:
+                success:
+                  summary: 成功示例
+                  value:
+                    success: true
+                    originalTitle: "示例文章标题"
+                    processingTime: 1234
+                    ir:
+                      metadata:
+                        url: "https://example.com/article"
+                        title: "示例文章标题"
+                        author: "作者名"
+                        publishDate: "2024-01-01T00:00:00Z"
+                        excerpt: "文章摘要..."
+                        siteName: "示例网站"
+                        lang: "zh-CN"
+                      content:
+                        headings:
+                          - level: 1
+                            text: "主标题"
+                          - level: 2
+                            text: "副标题"
+                        paragraphs:
+                          - "段落内容 1..."
+                          - "段落内容 2..."
+                        images:
+                          - src: "https://example.com/image.jpg"
+                            alt: "图片描述"
+                            width: 800
+                            height: 600
+                      semantic:
+                        mainEntityType: "Article"
+                        keywords: ["关键词1", "关键词2"]
+                        readingTime: 5
+                        wordCount: 1000
+                    geoHTML: "<!DOCTYPE html>..."
+                    originalHTML: "<!DOCTYPE html>..."
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing-url:
+                  summary: 缺少 URL
+                  value:
+                    success: false
+                    error: "缺少 URL 参数"
+                invalid-url:
+                  summary: URL 格式无效
+                  value:
+                    success: false
+                    error: "URL 格式无效"
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                parse-error:
+                  summary: 解析失败
+                  value:
+                    success: false
+                    error: "页面内容不足或无法解析"
+
+  /api/geo/{slug}:
+    get:
+      tags:
+        - GEO
+      summary: 访问 GEO 优化页面
+      description: |
+        根据访问者类型返回不同内容:
+        - **AI/Bot 访问**: 返回 GEO 优化的 HTML(包含 JSON-LD、Schema.org 标记)
+        - **普通访问**: 返回提示页面,说明如何模拟 AI 访问
+        
+        ## AI 访问检测方式
+        
+        ### 1. User-Agent 检测
+        支持的 AI User-Agent:
+        - OpenAI: `GPTBot`, `ChatGPT-User`, `OAI-SearchBot`
+        - Anthropic: `ClaudeBot`, `Claude-Web`, `anthropic-ai`
+        - Google: `Google-Extended`, `Gemini`, `GoogleOther`
+        - Perplexity: `PerplexityBot`
+        - 其他: `Applebot-Extended`, `meta-externalagent` 等
+        
+        ### 2. 自定义 Header
+        - `X-AI-Request: true`
+        - `X-Bot-Type: llm`
+        
+        ### 3. Query 参数
+        - `?ai=true`
+        - `?format=geo`
+
+      operationId: getGeoPage
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: |
+            目标页面路径,格式: `domain.com/path`
+            
+            系统会自动补全为: `https://domain.com/path`
+          examples:
+            simple:
+              summary: 简单域名
+              value: example.com
+            with-path:
+              summary: 带路径
+              value: example.com/article/123
+        - name: url
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+          description: 完整的目标 URL(优先级高于 slug)
+          example: https://example.com/article
+        - name: ai
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: 强制 AI 模式
+          example: true
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [geo]
+          description: 指定输出格式
+          example: geo
+      responses:
+        '200':
+          description: 成功返回页面
+          headers:
+            X-GEO-Optimized:
+              schema:
+                type: string
+              description: 是否为 GEO 优化页面
+              example: "true"
+            X-Original-URL:
+              schema:
+                type: string
+              description: 原始页面 URL
+            X-Processing-Time:
+              schema:
+                type: string
+              description: 处理耗时
+              example: "1234ms"
+            X-AI-Service:
+              schema:
+                type: string
+              description: AI 服务类型(如果可识别)
+              example: "OpenAI"
+          content:
+            text/html:
+              schema:
+                type: string
+                description: |
+                  - AI 访问: GEO 优化的 HTML
+                  - 普通访问: 提示页面 HTML
+              examples:
+                ai-response:
+                  summary: AI 访问返回的 GEO HTML
+                  value: |
+                    <!DOCTYPE html>
+                    <html lang="zh-CN">
+                    <head>
+                      <title>文章标题</title>
+                      <script type="application/ld+json">
+                      {
+                        "@context": "https://schema.org",
+                        "@type": "Article",
+                        "headline": "文章标题",
+                        ...
+                      }
+                      </script>
+                    </head>
+                    <body>
+                      <article itemscope itemtype="https://schema.org/Article">
+                        <h1 itemprop="headline">文章标题</h1>
+                        ...
+                      </article>
+                    </body>
+                    </html>
+                human-response:
+                  summary: 普通访问返回的提示页面
+                  value: |
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>GEO 页面访问</title></head>
+                    <body>
+                      <h1>这是一个 GEO 优化页面</h1>
+                      <p>此页面专为 AI/LLM 访问优化...</p>
+                    </body>
+                    </html>
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  usage:
+                    type: string
+        '500':
+          description: 处理失败
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+components:
+  schemas:
+    IR:
+      type: object
+      description: 中间表示(Intermediate Representation)
+      required:
+        - metadata
+        - content
+        - semantic
+      properties:
+        metadata:
+          type: object
+          description: 页面元数据
+          required:
+            - url
+            - title
+            - excerpt
+          properties:
+            url:
+              type: string
+              format: uri
+              description: 页面 URL
+            title:
+              type: string
+              description: 页面标题
+            author:
+              type: string
+              description: 作者
+            publishDate:
+              type: string
+              format: date-time
+              description: 发布日期
+            excerpt:
+              type: string
+              description: 摘要
+            siteName:
+              type: string
+              description: 网站名称
+            lang:
+              type: string
+              description: 语言代码
+              example: zh-CN
+        content:
+          type: object
+          description: 页面内容
+          required:
+            - headings
+            - paragraphs
+            - images
+          properties:
+            headings:
+              type: array
+              description: 标题列表
+              items:
+                type: object
+                properties:
+                  level:
+                    type: integer
+                    minimum: 1
+                    maximum: 6
+                    description: 标题级别(1-6)
+                  text:
+                    type: string
+                    description: 标题文本
+                  id:
+                    type: string
+                    description: HTML ID(可选)
+            paragraphs:
+              type: array
+              description: 段落列表
+              items:
+                type: string
+            images:
+              type: array
+              description: 图片列表
+              items:
+                type: object
+                required:
+                  - src
+                  - alt
+                properties:
+                  src:
+                    type: string
+                    format: uri
+                    description: 图片 URL
+                  alt:
+                    type: string
+                    description: 替代文本
+                  caption:
+                    type: string
+                    description: 图片说明
+                  width:
+                    type: integer
+                    description: 宽度(像素)
+                  height:
+                    type: integer
+                    description: 高度(像素)
+            lists:
+              type: array
+              description: 列表(可选)
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [ul, ol]
+                    description: 列表类型
+                  items:
+                    type: array
+                    items:
+                      type: string
+            videos:
+              type: array
+              description: 视频(可选)
+              items:
+                type: object
+                properties:
+                  src:
+                    type: string
+                    format: uri
+                  poster:
+                    type: string
+                    format: uri
+                  caption:
+                    type: string
+        semantic:
+          type: object
+          description: 语义信息
+          required:
+            - mainEntityType
+          properties:
+            mainEntityType:
+              type: string
+              enum: [Product, Article, BlogPosting, NewsArticle, WebPage, Person, Organization, Event]
+              description: Schema.org 实体类型
+            keywords:
+              type: array
+              description: 关键词
+              items:
+                type: string
+            readingTime:
+              type: integer
+              description: 阅读时间(分钟)
+            wordCount:
+              type: integer
+              description: 字数
+        raw:
+          type: object
+          description: 原始数据(可选)
+          properties:
+            textContent:
+              type: string
+            htmlContent:
+              type: string
+            length:
+              type: integer
+
+    ParseResponse:
+      type: object
+      description: 解析响应
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: 是否成功
+        ir:
+          $ref: '#/components/schemas/IR'
+        geoHTML:
+          type: string
+          description: 生成的 GEO HTML
+        originalHTML:
+          type: string
+          description: 原始 HTML(可选)
+        originalTitle:
+          type: string
+          description: 原始标题
+        processingTime:
+          type: integer
+          description: 处理耗时(毫秒)
+        error:
+          type: string
+          description: 错误信息(失败时)
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: 错误描述
