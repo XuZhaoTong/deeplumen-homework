@@ -43,7 +43,10 @@ export default function Home() {
         <Hero onAnalyze={handleAnalyze} />
 
         {hasResults && currentIR && (
-          <div id="results">
+          <div
+            id="results"
+            className={"w-full flex items-center justify-center"}
+          >
             <AnalysisResults
               url={currentUrl}
               originalHTML={currentOriginalHTML}

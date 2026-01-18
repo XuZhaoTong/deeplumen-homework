@@ -64,8 +64,11 @@ export function AIViewCard({ geoHTML }: AIViewCardProps) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="code" className="flex-1 m-0">
-          <div className="p-5 flex-1 bg-gray-100/50 dark:bg-[#0f1923]">
+        <TabsContent
+          value="code"
+          className="flex-1 m-0 bg-gray-100/50 dark:bg-[#0f1923]"
+        >
+          <div className="p-5 flex-1 ">
             <BrowserMockup>
               <div className="bg-[#1e1e1e] h-[360px] overflow-auto custom-scrollbar">
                 <SyntaxHighlighter
@@ -86,8 +89,11 @@ export function AIViewCard({ geoHTML }: AIViewCardProps) {
           </div>
         </TabsContent>
 
-        <TabsContent value="rendered" className="flex-1 m-0">
-          <div className="p-5 flex-1 bg-gray-100/50 dark:bg-[#0f1923]">
+        <TabsContent
+          value="rendered"
+          className="flex-1 m-0 bg-gray-100/50 dark:bg-[#0f1923]"
+        >
+          <div className="p-5 flex-1 ">
             <BrowserMockup>
               <iframe
                 srcDoc={processedHTML}
