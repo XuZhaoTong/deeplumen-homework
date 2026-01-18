@@ -2,28 +2,10 @@ openapi: 3.0.0
 info:
   title: GEO 优化器 API
   description: |
-    将标准网页转换为结构化、机器可读的格式,针对 LLM 和生成式搜索引擎进行优化
-    
-    ## 什么是 GEO?
-    
-    GEO (Generative Engine Optimization) 是一种针对生成式引擎的优化技术,通过以下方式提升页面对 AI 的友好性:
-    - 清洗网页噪音(广告、导航等)
-    - 提取核心内容并生成结构化数据
-    - 添加 JSON-LD 和 Schema.org 标记
-    - 简化样式,提高信噪比
-    
-    ## 处理流程
-    
-    ```
-    URL → HTML Cleaner → IR Generator → GEO Generator → GEO HTML
-    ```
-    
-    ## AI 访问检测
-    
-    系统支持多种方式识别 AI/Bot 访问:
-    - **User-Agent 检测**: 识别已知 AI 服务(GPTBot、ClaudeBot、Google-Extended 等)
-    - **自定义 Header**: `X-AI-Request: true` 或 `X-Bot-Type: llm`
-    - **Query 参数**: `?ai=true` 或 `?format=geo`
+    这是一个面向生成式引擎优化 (GEO) 的工具 API。
+    主要提供两个核心功能：
+    1. **访问 (GEO Access)**: 模拟 AI 访问，根据访问者身份（AI/人类）智能返回优化后的内容。
+    2. **解析 (Parse)**: 将任意网页转换为结构化中间表示 (IR) 和 AI 友好的 HTML。
 
   version: 1.0.0
   contact:
@@ -39,25 +21,93 @@ servers:
     description: 生产环境
 
 tags:
-  - name: Parse
-    description: 解析和转换 API
   - name: GEO
-    description: GEO 优化页面访问
+    description: 核心 GEO 访问接口
+  - name: Parse
+    description: 基础解析服务
 
 paths:
+  /api/geo/{slug}:
+    get:
+      tags:
+        - GEO
+      summary: 获取 GEO 优化页面 (智能路由)
+      description: |
+        访问目标网页的 GEO 版本。系统会根据请求特征自动判断：
+        - **AI 访问**: 返回清洗后的、结构化的 GEO HTML（去噪、语义化）。
+        - **人类访问**: 返回友好的提示页面或重定向。
+
+        ### 🤖 AI 访问检测机制
+        接口会按以下优先级检测是否为 AI 访问（满足任一条件即可）：
+
+        1. **Query 参数** (最易于测试):
+           - `?ai=true` 或 `?format=geo`
+        2. **自定义 Header**:
+           - `X-AI-Request: true` 或 `X-Bot-Type: llm`
+        3. **User-Agent**:
+           - 自动匹配 `GPTBot`, `ClaudeBot`, `Google-Extended` 等已知 AI 爬虫指纹。
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: 目标域名或路径占位符
+          schema:
+            type: string
+          # 🟢 方便调试：默认填入 example.com
+          example: example.com
+
+        - name: url
+          in: query
+          required: false
+          description: (可选) 完整的特定 URL，如果提供此参数将覆盖 path 中的 slug
+          schema:
+            type: string
+          # 🟢 方便调试：提供一个真实的长链接
+          example: https://news.qq.com/rain/a/20260117A05C9M00
+
+        - name: ai
+          in: query
+          required: false
+          description: (调试用) 强制开启 AI 模式，跳过 UA 检测
+          schema:
+            type: boolean
+          # 🟢 方便调试：默认开启，点击 Execute 即可看到 GEO 效果
+          example: true
+
+      responses:
+        '200':
+          description: 成功返回 HTML 内容
+          headers:
+            X-GEO-Optimized:
+              description: 标识是否为 GEO 优化页面
+              schema:
+                type: boolean
+            X-AI-Service:
+              description: 识别到的 AI 服务商 (如 OpenAI, Google)
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "<!DOCTYPE html><html lang='zh-CN'>...</html>"
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/parse:
     post:
       tags:
         - Parse
-      summary: 解析 URL 并生成 IR 和 GEO HTML
+      summary: 解析网页 (获取 IR 与 GEO 数据)
       description: |
-        核心 API,完整处理流程:
-        1. 获取并清洗目标 URL 的 HTML
-        2. 生成中间表示(IR)
-        3. 生成 GEO 优化的 HTML
+        执行完整的 GEO 处理流程：
+        `Fetch HTML` → `Clean` → `Generate IR` → `Generate GEO HTML`
         
-        **推荐用于**: 一次性获取完整处理结果
-      operationId: parseUrl
+        返回包含中间表示 (IR) 和最终 HTML 的 JSON 数据，通常用于调试或后端集成。
       requestBody:
         required: true
         content:
@@ -69,18 +119,8 @@ paths:
               properties:
                 url:
                   type: string
-                  format: uri
-                  description: 要解析的目标 URL
-                  example: https://example.com/article
-            examples:
-              news-article:
-                summary: 新闻文章
-                value:
-                  url: https://news.qq.com/rain/a/20260117A05C9M00
-              blog-post:
-                summary: 博客文章
-                value:
-                  url: https://juejin.cn/post/7504486902692167689?utm_source=gold_browser_extension
+                  description: 需要解析的目标网页 URL
+                  example: https://news.qq.com/rain/a/20260117A05C9M00
       responses:
         '200':
           description: 解析成功
@@ -88,227 +128,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ParseResponse'
-              examples:
-                success:
-                  summary: 成功示例
-                  value:
-                    success: true
-                    originalTitle: "示例文章标题"
-                    processingTime: 1234
-                    ir:
-                      metadata:
-                        url: "https://example.com/article"
-                        title: "示例文章标题"
-                        author: "作者名"
-                        publishDate: "2024-01-01T00:00:00Z"
-                        excerpt: "文章摘要..."
-                        siteName: "示例网站"
-                        lang: "zh-CN"
-                      content:
-                        headings:
-                          - level: 1
-                            text: "主标题"
-                          - level: 2
-                            text: "副标题"
-                        paragraphs:
-                          - "段落内容 1..."
-                          - "段落内容 2..."
-                        images:
-                          - src: "https://example.com/image.jpg"
-                            alt: "图片描述"
-                            width: 800
-                            height: 600
-                      semantic:
-                        mainEntityType: "Article"
-                        keywords: ["关键词1", "关键词2"]
-                        readingTime: 5
-                        wordCount: 1000
-                    geoHTML: "<!DOCTYPE html>..."
-                    originalHTML: "<!DOCTYPE html>..."
         '400':
-          description: 请求参数错误
+          description: URL 无效或缺失
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                missing-url:
-                  summary: 缺少 URL
-                  value:
-                    success: false
-                    error: "缺少 URL 参数"
-                invalid-url:
-                  summary: URL 格式无效
-                  value:
-                    success: false
-                    error: "URL 格式无效"
         '500':
-          description: 服务器错误
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                parse-error:
-                  summary: 解析失败
-                  value:
-                    success: false
-                    error: "页面内容不足或无法解析"
-
-  /api/geo/{slug}:
-    get:
-      tags:
-        - GEO
-      summary: 访问 GEO 优化页面
-      description: |
-        根据访问者类型返回不同内容:
-        - **AI/Bot 访问**: 返回 GEO 优化的 HTML(包含 JSON-LD、Schema.org 标记)
-        - **普通访问**: 返回提示页面,说明如何模拟 AI 访问
-        
-        ## AI 访问检测方式
-        
-        ### 1. User-Agent 检测
-        支持的 AI User-Agent:
-        - OpenAI: `GPTBot`, `ChatGPT-User`, `OAI-SearchBot`
-        - Anthropic: `ClaudeBot`, `Claude-Web`, `anthropic-ai`
-        - Google: `Google-Extended`, `Gemini`, `GoogleOther`
-        - Perplexity: `PerplexityBot`
-        - 其他: `Applebot-Extended`, `meta-externalagent` 等
-        
-        ### 2. 自定义 Header
-        - `X-AI-Request: true`
-        - `X-Bot-Type: llm`
-        
-        ### 3. Query 参数
-        - `?ai=true`
-        - `?format=geo`
-
-      operationId: getGeoPage
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema:
-            type: string
-          description: |
-            目标页面路径,格式: `domain.com/path`
-            
-            系统会自动补全为: `https://domain.com/path`
-          examples:
-            simple:
-              summary: 简单域名
-              value: example.com
-            with-path:
-              summary: 带路径
-              value: example.com/article/123
-        - name: url
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uri
-          description: 完整的目标 URL(优先级高于 slug)
-          example: https://example.com/article
-        - name: ai
-          in: query
-          required: false
-          schema:
-            type: boolean
-          description: 强制 AI 模式
-          example: true
-        - name: format
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [geo]
-          description: 指定输出格式
-          example: geo
-      responses:
-        '200':
-          description: 成功返回页面
-          headers:
-            X-GEO-Optimized:
-              schema:
-                type: string
-              description: 是否为 GEO 优化页面
-              example: "true"
-            X-Original-URL:
-              schema:
-                type: string
-              description: 原始页面 URL
-            X-Processing-Time:
-              schema:
-                type: string
-              description: 处理耗时
-              example: "1234ms"
-            X-AI-Service:
-              schema:
-                type: string
-              description: AI 服务类型(如果可识别)
-              example: "OpenAI"
-          content:
-            text/html:
-              schema:
-                type: string
-                description: |
-                  - AI 访问: GEO 优化的 HTML
-                  - 普通访问: 提示页面 HTML
-              examples:
-                ai-response:
-                  summary: AI 访问返回的 GEO HTML
-                  value: |
-                    <!DOCTYPE html>
-                    <html lang="zh-CN">
-                    <head>
-                      <title>文章标题</title>
-                      <script type="application/ld+json">
-                      {
-                        "@context": "https://schema.org",
-                        "@type": "Article",
-                        "headline": "文章标题",
-                        ...
-                      }
-                      </script>
-                    </head>
-                    <body>
-                      <article itemscope itemtype="https://schema.org/Article">
-                        <h1 itemprop="headline">文章标题</h1>
-                        ...
-                      </article>
-                    </body>
-                    </html>
-                human-response:
-                  summary: 普通访问返回的提示页面
-                  value: |
-                    <!DOCTYPE html>
-                    <html>
-                    <head><title>GEO 页面访问</title></head>
-                    <body>
-                      <h1>这是一个 GEO 优化页面</h1>
-                      <p>此页面专为 AI/LLM 访问优化...</p>
-                    </body>
-                    </html>
-        '400':
-          description: 请求参数错误
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  usage:
-                    type: string
-        '500':
-          description: 处理失败
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
+          description: 服务器解析错误
 
 components:
   schemas:
