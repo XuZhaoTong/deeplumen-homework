@@ -13,7 +13,7 @@ interface HeroProps {
 }
 
 export function Hero({ onAnalyze }: HeroProps) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState("https://news.qq.com/rain/a/20260118A030DV00");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

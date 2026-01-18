@@ -63,7 +63,7 @@ paths:
           schema:
             type: string
           # 🟢 方便调试：提供一个真实的长链接
-          example: https://news.qq.com/rain/a/20260117A05C9M00
+          example: https://news.qq.com/rain/a/20260118A030DV00
 
         - name: ai
           in: query
@@ -120,7 +120,7 @@ paths:
                 url:
                   type: string
                   description: 需要解析的目标网页 URL
-                  example: https://news.qq.com/rain/a/20260117A05C9M00
+                  example: https://news.qq.com/rain/a/20260118A030DV00
       responses:
         '200':
           description: 解析成功

@@ -1,23 +1,197 @@
-# deeplumen-homework
+# 网页 GEO (Generative Engine Optimization) 自动化处理引擎
 
-## 在线演示
+## 🌐 在线演示
 
-[在线演示](https://deeplumen-homework.vercel.app)
+[点击访问在线演示](https://deeplumen-homework.vercel.app)
 
-## 快速开始
+[API文档](https://deeplumen-homework.vercel.app/api-docs)
 
-### 环境要求
+---
 
-- Node.js >= 22
-- pnpm >= 10
+## 📖 目录
 
-### 安装与运行
+- [项目背景与目标](#-项目背景与目标)
+- [核心系统架构](#-核心系统架构)
+- [AI 访问识别策略](#-ai-访问识别策略)
+- [GEO 页面设计原则](#-geo-页面设计原则)
+- [深度思考 (Deep Thinking)](#-深度思考-deep-thinking)
+- [技术选型说明](#-技术选型说明)
+- [未来扩展规划](#-未来扩展规划)
+
+---
+
+## 🚀 项目背景与目标
+
+随着 LLM（大语言模型）驱动的搜索引擎（如 SearchGPT, Perplexity）逐渐取代传统检索，互联网的信息获取模式正从 **“检索 (Retrieval)”** 转向 **“合成 (Synthesis)”**。
+
+本项目的核心目标是实现 **GEO (Generative Engine Optimization)** 流程，解决传统网页对 AI 不友好的痛点：
+1.  **高噪音**：传统的 HTML 充斥着广告、导航、样式类名，消耗 LLM 的 Token 上下文窗口。
+2.  **非结构化**：缺乏机器可读的语义实体关系。
+3.  **解析困难**：复杂的 DOM 结构增加了 Agent 的抓取成本。
+
+本项目实现了一个**双模态内容分发系统**：自动识别访问者身份，为人类提供视觉页面，为 AI Agent 提供高语义密度的结构化数据。
+
+---
+
+## 🏗 核心系统架构
+
+本项目采用 **“解析 → 中间表示 (IR) → 生成”** 的三层架构设计，确保了数据处理的解耦与灵活性。
+
+```text
++-----------------+
+|   用户 / Agent  |
++--------+--------+
+         |
+         v
++--------+--------------------------+
+|  Edge Gateway / AI Detector       |
+|  (Next.js Middleware)             |
++--------+------------------+-------+
+         |                  |
+         | Human            | AI / Bot (GPTBot, Claude...)
+         | (Browser)        |
+         v                  v
++--------+--------+   +-----+---------------------------+
+|                 |   |  GEO Processing Engine          |
+|  原始 HTML 页面  |   |                                 |
+|  (SSR / Client) |   |  [ HTML Cleaner ]               |
+|                 |   |         | (Raw HTML)            |
++-----------------+   |         v                       |
+                      |  [ DOM Parser ]                 |
+                      |         | (Structured Data)     |
+                      |         v                       |
+                      |  [ IR Generator (中间表示层) ]    |
+                      |         | (IR Object)           |
+                      |         v                       |
+                      |  [ GEO Generator ]              |
+                      +---------+-----------------------+
+                                |
+                                | (JSON-LD + Semantic HTML)
+                                v
+                      +---------+-----------------------+
+                      |    AI-Friendly Page Response    |
+                      +---------------------------------+
+
+```
+
+### 核心模块职责
+
+| 模块 | 对应文件 | 职责 |
+| --- | --- | --- |
+| **HTMLCleaner** | `lib/cleaner.ts` | 基于 Mozilla Readability 算法，去除广告、脚本、样式等噪音，提取核心正文。 |
+| **IRGenerator** | `lib/ir-generator.ts` | **(核心抽象)** 将清洗后的数据标准化为 `IR` (Intermediate Representation) 对象，包含元数据、内容块、实体类型、阅读时长等。 |
+| **GeoGenerator** | `lib/geo-generator.ts` | 消费 IR 数据，注入 `schema.org` (JSON-LD) 结构化数据，生成极简、语义化的 HTML。 |
+| **AIDetector** | `lib/ai-detector.ts` | 多维度的 AI 流量指纹识别（UA、Header、Query）。 |
+
+---
+
+## 🤖 AI 访问识别策略
+
+在 `lib/ai-detector.ts` 中实现了多层次的识别逻辑，支持配置 `strictMode`。
+
+### 1. User-Agent 特征库匹配
+
+支持主流 AI Bot 的精准识别，包括但不限于：
+
+* **OpenAI**: `GPTBot`, `OAI-SearchBot`, `ChatGPT-User`
+* **Anthropic**: `ClaudeBot`, `Claude-Web`
+* **Google**: `Google-Extended`, `Gemini`
+* **Perplexity**: `PerplexityBot`
+* **Other**: `Applebot-Extended`, `Bytespider` 等
+
+### 2. 显式协议识别 (Header/Query)
+
+允许通过 API 方式显式请求 GEO 页面，方便 Agent 主动调用，[在线测试](https://deeplumen-homework.vercel.app/api-docs#tag/geo/GET/api/geo/{slug})
+
+* Header: `X-AI-Request: true`
+* Query: `?ai=true` 或 `?format=geo`
+
+---
+
+## 🎨 GEO 页面设计原则
+
+基于**“面向模型 (Model-First)”** 的设计理念，GEO 页面具备以下特征：
+
+1. **最大化信噪比 (Signal-to-Noise Ratio)**：
+* 移除所有 CSS、JS、广告 iframe。
+* **数据对比**：原始页面 2MB -> GEO 页面 <50KB，**Token 消耗降低 90% 以上**。
+
+
+2. **语义显性化**：
+* 使用 `<article>`, `<section>`, `<figure>` 等语义标签替代 `<div>`。
+* 图片强制保留 `alt` 和 `caption`，方便多模态模型理解。
+
+
+3. **结构化数据优先**：
+* 头部预埋完整的 `application/ld+json`，帮助 AI 建立知识图谱 (Knowledge Graph) 实体关联。
+
+
+
+---
+
+## 💡 深度思考 (Deep Thinking)
+
+基于项目实践与对 AI 搜索基础设施的研究，以下是对关键问题的思考：
+
+### Q1: 如果需要支持 AI 搜索引擎主动抓取，你会如何设计？
+
+**答：引入 `llms.txt` 标准协议。**
+除了被动等待 User-Agent 识别，我会在网站根目录部署 `/llms.txt`（类似 robots.txt，但服务于推理）。该文件通过 Markdown 格式声明网站的核心文档结构，为 AI 提供了明确的“站点地图”和“上下文入口”，变被动抓取为主动喂养。
+
+### Q2: GEO 页面是否应该与原页面 1:1？
+
+**答：绝对不应该。**
+
+* **视觉 vs 逻辑**：原页面服务于人类的视觉流（Visual Flow），包含大量为了留存率设计的推荐位和交互动效。
+* **Token 经济学**：AI 的推理成本与 Token 长度成正比。1:1 还原意味着保留大量对推理无效的 Token，这会增加延迟并引起模型的“注意力分散”。GEO 页面应是原页面的“逻辑摘要”和“事实集合”。
+
+### Q3: 如果页面是 SPA / 强交互，你会如何处理？
+
+**答：采用 Headless Browser 预渲染 (Prerendering)。**
+当前的 `fetch` + `cheerio` 方案无法处理 CSR（客户端渲染）页面。对于 SPA，我会引入 **Playwright** 或 **Puppeteer** 作为中间件。
+
+* **流程**：检测到 AI UA -> 启动 Headless Browser -> 等待 Hydration 完成 -> 获取完整 DOM -> 传入 HTMLCleaner。
+* **优化**：由于浏览器实例开销大，必须配合 Redis 缓存层，对生成的 IR 结果进行持久化缓存。
+
+### Q4: 如何避免 GEO 页面被滥用或误识别？
+
+**答：IP 反查验证 (Reverse DNS Lookup) + 签名机制。**
+仅靠 User-Agent 极易被伪造。生产环境应实施：
+
+1. **IP 验证**：获取请求 IP，反查 DNS 指针是否指向 OpenAI/Google 的官方域名，并比对官方公布的 IP 白名单段。
+2. **内容水印**：在 GEO 页面中嵌入不可见的零宽字符水印，用于追踪内容被非法模型训练的来源。
+3. **速率限制**：针对 GEO 接口设置不同于普通用户的 Rate Limit，防止被用于低成本的数据清洗。
+
+---
+
+## 💻 技术选型说明
+
+| 技术 | 用途 | 选择理由 |
+| --- | --- | --- |
+| **Next.js** | React 框架 | **业界首选的全栈框架，完美契合 MVP 阶段的快速交付。** 架构上支持 API 逻辑解耦，为未来将后端服务剥离至 Nest.js/FastAPI 等专业框架预留了平滑的演进路径。 |
+| **Linkedom**  | 服务端 DOM 模拟 | **高性能的 JSDOM 替代方案。** 为 Mozilla Readability 提供轻量级的 Web 标准 DOM 环境，内存占用极低，显著提升清洗管线的吞吐量。 |
+| **Cheerio** | 结构化内容提取 | **快速的 HTML 解析器。** 负责在后处理阶段从清洗后的 HTML 中精准提取 IR 数据（Heading/Image/List），语法简洁且性能远优于正则。 |
+| **Mozilla Readability**  | 核心去噪算法 | **工业级去噪引擎。** 经过 Firefox 生产环境验证的算法，能智能剥离广告与导航，提取高信噪比的核心正文。 |
+
+---
+
+## 🔮 未来扩展规划
+
+如果继续完善本项目，我将从以下维度进行扩展：
+
+1. **核心性能重构 (Rust/Wasm)**： 将现有的 HTML 清洗与 IR 生成逻辑（CPU 密集型）重写为 Rust 模块并编译为 WebAssembly，解决 Node.js 在高并发下的算力瓶颈，进一步降低 API 延迟。
+
+2. **Next.js GEO Middleware SDK**： 将本项目核心逻辑封装为标准的 Next.js 中间件 SDK。开发者只需 npm install @geo/sdk，即可通过一行配置为现有的 Next.js 应用开启“GEO 影子模式”，在不侵入原有 UI 代码的情况下自动生成 AI 友好视图。
+
+3. **Agent 技能化与 MCP 支持**： 适配 Model Context Protocol (MCP) 标准，将 GEO 解析能力封装为通用 Skill。使 Claude Desktop、Cursor 等 IDE 或智能体能够通过标准协议直接调用本服务，实时获取网页的深度语义数据。
+
+4. **企业级批量处理服务 (GaaS)**： 构建支持高并发的 Batch API，允许 AI 搜索引擎或模型训练方一次性提交数千个 URL。引入消息队列（Kafka/RabbitMQ）削峰填谷，提供稳定可靠的清洗后语料服务（GEO-as-a-Service）。
+
+---
+
+## 📦 快速开始
 
 ```bash
-# 克隆项目
-git clone https://github.com/XuZhaoTong/deeplumen-homework
-cd deeplumen-homework
-
 # 安装依赖
 pnpm install
 
@@ -26,341 +200,8 @@ pnpm dev
 
 # 访问应用
 open http://localhost:3000
-```
----
 
-## 目录
-
-- [项目目标](#项目目标)
-- [系统架构简述](#系统架构简述)
-- [AI 访问识别逻辑](#AI访问识别逻辑)
-- [GEO 页面设计原则](#GEO页面设计原则)
-- [如何扩展](#如何扩展)
-- [技术选型](#技术选型)
-- [思考题](#思考题)
-
----
-
-## 项目目标
-
-随着 LLM（大语言模型）驱动的搜索引擎和智能体的兴起，网站不仅需要为人类用户优化，也需要为 AI/Agent/Bot 提供：
-- 更易理解的结构化内容
-- 可直接引用的事实、数据与多媒体信息
-- 稳定、低噪音、可机器解析的页面形态
-这种面向生成式引擎的优化，称为 **GEO (Generative Engine Optimization)**。
-
-**本项目实现了一个完整的 GEO 优化处理流程**，能够：
-1. 自动清洗网页噪音（广告、导航等）
-2. 提取核心内容并生成结构化数据
-3. 根据访问者类型返回不同形态的页面
-
----
-
-## 系统架构简述
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         用户输入 URL                          │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-            ┌────────────────────────┐
-            │   Cache Layer          │
-            │   - 内存缓存             │
-            │   - TTL: 1小时          │
-            └────────┬───────────────┘
-                     │ Cache Miss
-                     ▼
-            ┌────────────────────────┐
-            │   HTML Cleaner         │
-            │   - Fetch HTML         │
-            │   - Mozilla Readability│
-            │   - 去除噪音            │
-            └────────┬───────────────┘
-                     │
-                     ▼
-            ┌────────────────────────┐
-            │   IR Generator         │
-            │   - 解析 DOM           │
-            │   - 提取内容元素        │
-            │   - 识别语义信息        │
-            │   - 生成关键词          │
-            └────────┬───────────────┘
-                     │
-                     ▼
-            ┌────────────────────────┐
-            │   GEO Generator        │
-            │   - 生成 JSON-LD       │
-            │   - Schema.org 标记    │
-            │   - 简化样式            │
-            └────────┬───────────────┘
-                     │
-                     ▼
-            ┌────────────────────────┐
-            │   AI Detector          │
-            │   - 检测访问者类型      │
-            └────────┬───────────────┘
-                     │
-         ┌───────────┴────────────┐
-         ▼                        ▼
-┌─────────────────┐      ┌─────────────────┐
-│  GEO HTML       │      │  提示页面/重定向 │
-│  (AI 访问)      │      │  (普通访问)      │
-└─────────────────┘      └─────────────────┘
-```
-
-### 核心模块说明
-
-| 模块 | 职责 | 输入 | 输出 |
-|------|------|------|------|
-| **HTMLCleaner** | 获取并清洗 HTML | URL | ParsedArticle |
-| **IRGenerator** | 生成中间表示 | ParsedArticle | IR |
-| **GeoGenerator** | 生成 GEO HTML | IR | GEO HTML |
-| **AIDetector** | 识别访问者类型 | Request | boolean |
-| **Cache** | 缓存管理 | URL | IR (cached) |
-
----
-
-## AI访问识别逻辑
-
-通过多种方式识别 AI/Bot 访问：
-
-### 1. User-Agent 检测
-
-支持的 AI User-Agent：
-
-| AI/服务 | User-Agent 关键词 |
-|---|---|
-| OpenAI ChatGPT | `ChatGPT-User`, `GPTBot`, `OAI-SearchBot` |
-| Anthropic Claude | `Claude-Web`, `anthropic-ai`, `ClaudeBot`, `Claude-User` |
-| Google Gemini | `Google-Extended`, `Gemini`, `GoogleOther`, `Google-CloudVertexBot` |
-| Perplexity | `PerplexityBot`, `Perplexity-User` |
-| You.com | `YouBot` |
-| Apple Intelligence | `Applebot-Extended`, `Applebot` |
-| Microsoft Bing | `BingBot` |
-| Meta AI | `meta-externalagent`, `meta-externalfetcher`, `FacebookBot`, `facebookexternalhit` |
-| Amazon | `Amazonbot` |
-| ByteDance | `Bytespider` |
-| Common Crawl | `CCBot` |
-| Cohere | `cohere-ai` |
-| Diffbot | `Diffbot` |
-| LinkedIn | `LinkedInBot` |
-| ImagesiftBot | `ImagesiftBot` |
-**示例：**
-
-```bash
-curl http://localhost:3000/api/geo/example.com \
-  -H "User-Agent: Mozilla/5.0 (compatible; GPTBot/1.0)"
-```
-
-### 2. 自定义 Header
-
-```bash
-curl http://localhost:3000/api/geo/example.com \
-  -H "X-AI-Request: true"
-```
-
-或
-
-```bash
-curl http://localhost:3000/api/geo/example.com \
-  -H "X-Bot-Type: llm"
-```
-
-### 3. Query 参数
-
-```bash
-curl "http://localhost:3000/api/geo/example.com?ai=true"
-```
-
-或
-
-```bash
-curl "http://localhost:3000/api/geo/example.com?format=geo"
-```
-
-### 检测策略
-
-- ✅ **精准匹配**：只识别明确的 AI User-Agent
-- ✅ **组合判断**：支持多种检测方式
-- ✅ **可配置**：可通过配置文件调整策略
-
----
-
-## GEO页面设计原则
-
-### 1. 语义化标记
-
-**JSON-LD 结构化数据：**
-
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "文章标题",
-  "author": {
-    "@type": "Person",
-    "name": "作者名"
-  },
-  "datePublished": "2024-01-01",
-  "image": {
-    "@type": "ImageObject",
-    "url": "https://example.com/image.jpg"
-  },
-  "keywords": "关键词1, 关键词2"
-}
-</script>
-```
-
-**Schema.org itemprop 属性：**
-
-```html
-<article itemscope itemtype="https://schema.org/Article">
-  <h1 itemprop="headline">文章标题</h1>
-  <span itemprop="author" itemscope itemtype="https://schema.org/Person">
-    <meta itemprop="name" content="作者名">
-  </span>
-  <div itemprop="articleBody">
-    <p>文章内容...</p>
-  </div>
-</article>
-```
-
-### 2. 去除冗余
-
-**移除的内容：**
-- ❌ 广告脚本和追踪代码
-- ❌ 复杂的 CSS 动画和过渡
-- ❌ JavaScript 交互逻辑
-- ❌ 社交分享按钮
-- ❌ 评论区和推荐内容
-- ❌ 导航菜单和侧边栏
-
-**保留的内容：**
-- ✅ 核心文本内容
-- ✅ 标题层次结构
-- ✅ 图片和视频（含元数据）
-- ✅ 列表和表格
-- ✅ 最小化的可读样式
-
-### 3. 信息密度优化
-
-| 指标 | 原始页面 | GEO 页面 | 改进 |
-|------|---------|---------|------|
-| HTML 大小 | ~200KB | ~30KB | **-85%** |
-| 图片请求 | 50+ | 保留核心图片 | **按需** |
-| JavaScript | 多个文件 | 0 | **-100%** |
-| CSS | 复杂样式 | 内联最小样式 | **-90%** |
-| 信噪比 | 低 | 高 | **显著提升** |
-
-### 4. 内容组织
+# 访问文档
+open http://localhost:3000/api-docs
 
 ```
-原始页面结构：          GEO 页面结构：
-┌────────────┐         ┌────────────┐
-│ 导航菜单    │         │ 元数据      │
-├────────────┤         ├────────────┤
-│ 广告banner │         │ 标题        │
-├────────────┤         ├────────────┤
-│ 侧边栏      │         │ 摘要        │
-│            │    →    ├────────────┤
-│ 主要内容    │         │ 正文        │
-│            │         │ (按主题组织) │
-│ 相关推荐    │         ├────────────┤
-├────────────┤         │ 图片/视频   │
-│ 评论区      │         ├────────────┤
-├────────────┤         │ 列表数据    │
-│ 页脚        │         └────────────┘
-└────────────┘
-```
-
----
-
-## 如何扩展
-
-如果时间充裕，可以进一步优化：
-
-### 1. 支持 SPA 页面
-
-使用 Playwright 获取渲染后的 HTML
-
-### 2. 批量处理 API
-
-并发处理多个 url，返回所有结果
-
-### 3. 封装成 Skill
-
-给大模型使用
-
-### 4. 封装成 Next.js SDK
-
-使用 Next.js 大部分是为了SEO，安装此 SDK 后 GEO优化也会更佳
-
-### 5. 封装成 SaaS服务
-给大模型训练、搜索时使用
-
-### 6. 性能优化
-使用 Rust/Wasm 进行CPU密集型任务，提高性能
----
-
-## 技术选型
-
-### 核心技术栈
-
-| 技术 | 版本   | 用途 | 选择理由 |
-|------|------|------|---------|
-| **Next.js** | 16   | React 框架 | • App Router 支持<br>• 内置 API Routes<br>• SSR/SSG 能力<br>• TypeScript 原生支持 |
-| **Mozilla Readability** | 0.6  | 内容提取 | • 成熟稳定<br>• Firefox 官方库<br>• 准确度高 |
-| **Cheerio** | 1.1  | HTML 解析 | • 性能优秀<br>• 服务端友好 |
-| **linkedom** | 0.18 | DOM 模拟 | • Readability 依赖<br>• 完整的 DOM API |
-
-### 为什么选择 Next.js？
-
-**适合场景：**
-- ✅ MVP 快速开发
-- ✅ 中小规模应用
-- ✅ 需要 UI 界面的工具
-
-**不适合场景：**
-- ❌ 高并发 API 服务（建议用 Go/Rust）
-- ❌ 实时数据处理
-- ❌ 复杂的后台任务
-
----
-
-## 思考题
-
-### 1. 如何支持 AI 搜索引擎主动抓取？
-- 使用 robots.txt 类似的，AI搜索引擎专用配置文件
-- 项目 GEO 友好，信噪比高，AI 搜索引擎会优先抓取
-
-### 2. GEO 页面是否应该与原页面 1:1？
-
-**答案：不应该 1:1 对应。**
-
-**理由：**
-
-| 维度 | 原页面 | GEO 页面 | 差异原因 |
-|------|--------|---------|---------|
-| **设计目标** | 人类视觉消费 | AI 机器理解 | 阅读方式不同 |
-| **内容组织** | 按视觉布局 | 按语义主题 | AI 不需要视觉设计 |
-| **信息密度** | 穿插广告、导航 | 只保留核心内容 | 提高信噪比 |
-| **元数据** | 可能缺失 | 补充完整 | AI 需要结构化信息 |
-| **表现形式** | CSS 样式丰富 | 最小化样式 | 减少解析成本 |
-
-### 3. 如果页面是 SPA / 强交互，如何处理？
-
-使用 Playwright 获取渲染后的 HTML
-
-**优点：**
-- ✅ 完全模拟真实浏览器
-- ✅ 支持所有 JavaScript 框架
-- ✅ 处理动态加载
-
-**缺点：**
-- ⚠️ 速度较慢（2-5秒）
-- ⚠️ 内存消耗大
-- ⚠️ 需要额外依赖
-
-
-### 4. 如何避免 GEO 页面被滥用或误识别？
