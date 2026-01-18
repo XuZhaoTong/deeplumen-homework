@@ -8,15 +8,15 @@ import { BrowserMockup } from "./BrowserMockup";
 
 interface StandardViewCardProps {
   url: string;
-  mockHTML: string; // 真实的原始 HTML
+  html: string; // 真实的原始 HTML
 }
 
-export function StandardViewCard({ url, mockHTML }: StandardViewCardProps) {
+export function StandardViewCard({ url, html }: StandardViewCardProps) {
   // 如果 HTML 太长，截断显示（可选）
   const displayHTML =
-    mockHTML.length > 10000
-      ? mockHTML.slice(0, 10000) + "\n\n<!-- ... 内容过长，已截断 ... -->"
-      : mockHTML;
+    html.length > 10000
+      ? html.slice(0, 10000) + "\n\n<!-- ... 内容过长，已截断 ... -->"
+      : html;
 
   return (
     <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-gray-200 dark:border-gray-700 shadow-card overflow-hidden flex flex-col h-full">
@@ -71,11 +71,11 @@ export function StandardViewCard({ url, mockHTML }: StandardViewCardProps) {
             </BrowserMockup>
 
             {/* 如果 HTML 被截断，显示提示 */}
-            {mockHTML.length > 10000 && (
+            {html.length > 10000 && (
               <div className="bg-blue-50 dark:bg-blue-900/20 px-3 py-2 mt-3 rounded border border-blue-200 dark:border-blue-800">
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  ℹ️ 原始 HTML 共 {mockHTML.length.toLocaleString()}{" "}
-                  字符，已显示前 10,000 字符
+                  ℹ️ 原始 HTML 共 {html.length.toLocaleString()} 字符，已显示前
+                  10,000 字符
                 </p>
               </div>
             )}
@@ -116,9 +116,9 @@ export function StandardViewCard({ url, mockHTML }: StandardViewCardProps) {
           <p className="text-gray-500">
             丰富的视觉设计和 CSS，专为人类消费设计
           </p>
-          {mockHTML && (
+          {html && (
             <p className="text-gray-400 font-mono">
-              {(mockHTML.length / 1024).toFixed(1)} KB
+              {(html.length / 1024).toFixed(1)} KB
             </p>
           )}
         </div>

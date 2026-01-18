@@ -7,10 +7,29 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { BrowserMockup } from "./BrowserMockup";
 
 interface AIViewCardProps {
-  mockGeoHTML: string;
+  geoHTML: string;
+}
+// 代理 img, video, audio, source 标签的 src
+function proxyImageUrls(html: string): string {
+  // 先匹配整个标签，再替换 src
+  return html.replace(
+    /<(img|video|audio|source)([^>]*)>/gi,
+    (match, tag, attrs) => {
+      // 在属性中查找并替换 src
+      const newAttrs = attrs.replace(
+        /src="(https?:\/\/[^"]+)"/i,
+        (srcMatch: string, url: string) => {
+          const proxyUrl = `/api/source-proxy?url=${encodeURIComponent(url)}`;
+          return `src="${proxyUrl}"`;
+        },
+      );
+      return `<${tag}${newAttrs}>`;
+    },
+  );
 }
 
-export function AIViewCard({ mockGeoHTML }: AIViewCardProps) {
+export function AIViewCard({ geoHTML }: AIViewCardProps) {
+  const processedHTML = proxyImageUrls(geoHTML);
   return (
     <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#007ef5]/20 shadow-[0_0_0_1px_rgba(0,126,245,0.1),0_4px_20px_rgba(0,126,245,0.05)] overflow-hidden flex flex-col h-full">
       {/* 装饰性渐变条 */}
@@ -60,7 +79,7 @@ export function AIViewCard({ mockGeoHTML }: AIViewCardProps) {
                   }}
                   showLineNumbers
                 >
-                  {mockGeoHTML}
+                  {geoHTML}
                 </SyntaxHighlighter>
               </div>
             </BrowserMockup>
@@ -71,7 +90,7 @@ export function AIViewCard({ mockGeoHTML }: AIViewCardProps) {
           <div className="p-5 flex-1 bg-gray-100/50 dark:bg-[#0f1923]">
             <BrowserMockup>
               <iframe
-                srcDoc={mockGeoHTML}
+                srcDoc={processedHTML}
                 className="w-full h-[360px] border-0 bg-white"
                 title="GEO HTML 预览"
                 sandbox="allow-same-origin"

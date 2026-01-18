@@ -46,9 +46,9 @@ export default function Home() {
           <div id="results">
             <AnalysisResults
               url={currentUrl}
-              mockOriginalHTML={currentOriginalHTML}
-              mockGeoHTML={currentGeoHTML}
-              mockIRData={currentIR}
+              originalHTML={currentOriginalHTML}
+              geoHTML={currentGeoHTML}
+              iRData={currentIR}
             />
           </div>
         )}

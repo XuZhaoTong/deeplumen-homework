@@ -6,16 +6,16 @@ import { IRAccordion } from "./IRAccordion";
 
 interface AnalysisResultsProps {
   url: string;
-  mockOriginalHTML: string;
-  mockGeoHTML: string;
-  mockIRData: any;
+  originalHTML: string;
+  geoHTML: string;
+  iRData: any;
 }
 
 export function AnalysisResults({
   url,
-  mockOriginalHTML,
-  mockGeoHTML,
-  mockIRData,
+  originalHTML,
+  geoHTML,
+  iRData,
 }: AnalysisResultsProps) {
   return (
     <section className="w-full max-w-[1200px] px-4 pb-20">
@@ -30,14 +30,14 @@ export function AnalysisResults({
       {/* 两个卡片 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 卡片 1: 普通访问者看到的 */}
-        <StandardViewCard url={url} mockHTML={mockOriginalHTML} />
+        <StandardViewCard url={url} html={originalHTML} />
 
         {/* 卡片 2: AI 看到的 */}
-        <AIViewCard mockGeoHTML={mockGeoHTML} />
+        <AIViewCard geoHTML={geoHTML} />
       </div>
 
       {/* IR 折叠面板 */}
-      <IRAccordion data={mockIRData} />
+      <IRAccordion data={iRData} />
     </section>
   );
 }
