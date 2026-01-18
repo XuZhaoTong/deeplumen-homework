@@ -2,6 +2,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
+  const referer = request.headers.get("referer") || "";
+
+  // 🛡️ 简化版安全校验：
+  // 如果 Referer 既不是本地开发(localhost)，也不是正式域名，直接拒绝。
+  if (
+    !referer.includes("localhost") &&
+    !referer.startsWith("https://deeplumen-homework.vercel.app")
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const url = request.nextUrl.searchParams.get("url");
   if (!url) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });
