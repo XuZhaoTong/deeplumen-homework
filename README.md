@@ -201,7 +201,7 @@ pnpm dev
 # 访问应用
 open http://localhost:3000
 
-# 访问文档
+# 访问api文档
 open http://localhost:3000/api-docs
 
 ```
