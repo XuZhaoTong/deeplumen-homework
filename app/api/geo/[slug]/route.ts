@@ -28,13 +28,14 @@ import { getCachedIR } from "@/lib/cache";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const startTime = Date.now();
 
   try {
+    const { slug } = await params;
     // 1. 获取目标 URL
-    const targetURL = getTargetURL(request, params.slug);
+    const targetURL = getTargetURL(request, slug);
 
     if (!targetURL) {
       return NextResponse.json(
@@ -56,7 +57,7 @@ export async function GET(
 
     // 3. 如果是普通访问，返回提示页面
     if (!isAIRequest) {
-      return createHumanAccessPage(targetURL, detectionDetails);
+      return createHumanAccessPage(targetURL, detectionDetails, request);
     }
 
     // 4. AI 访问：生成并返回 GEO HTML
@@ -151,6 +152,7 @@ function getTargetURL(request: NextRequest, slug: string): string | null {
 function createHumanAccessPage(
   targetURL: string,
   detectionDetails: ReturnType<typeof aiDetector.getDetectionDetails>,
+  request: NextRequest,
 ): NextResponse {
   const isDev = process.env.NODE_ENV === "development";
 
@@ -341,7 +343,7 @@ function createHumanAccessPage(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const body = await request.json();
   const { url } = body;

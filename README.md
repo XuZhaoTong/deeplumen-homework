@@ -299,6 +299,8 @@ curl "http://localhost:3000/api/geo/example.com?format=geo"
 ### 5. 封装成 SaaS服务
 给大模型训练、搜索时使用
 
+### 6. 性能优化
+使用 Rust/Wasm 进行CPU密集型任务，提高性能
 ---
 
 ## 技术选型

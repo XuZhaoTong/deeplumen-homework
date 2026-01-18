@@ -6,7 +6,7 @@ import type { ParsedArticle } from "./types";
 
 /**
  * HTML 清洗器 - 使用 Mozilla Readability
- * 
+ *
  * 作用：
  * 1. 获取原始 HTML
  * 2. 去除广告、导航、侧边栏等噪音
@@ -15,31 +15,35 @@ import type { ParsedArticle } from "./types";
 export class HTMLCleaner {
   /**
    * 清洗指定 URL 的 HTML 内容
-   * 
+   *
    * 返回值包含原始 HTML 和清洗后的内容
    */
   async clean(url: string): Promise<ParsedArticle & { originalHTML?: string }> {
     try {
       // 1. 获取原始 HTML
       const html = await this.fetchHTML(url);
-      
+
       // 2. 使用 Readability 清洗
       const article = this.parseWithReadability(html, url);
-      
+
       if (!article) {
-        throw new Error("无法解析页面内容，可能页面结构不符合 Readability 规范");
+        throw new Error(
+          "无法解析页面内容，可能页面结构不符合 Readability 规范",
+        );
       }
-      
+
       // 3. 附加原始 HTML（可选，用于对比展示）
       return {
         ...article,
         originalHTML: html,
       };
     } catch (error) {
-      throw new Error(`HTML 清洗失败: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `HTML 清洗失败: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
-  
+
   /**
    * 获取 URL 的 HTML 内容
    */
@@ -47,21 +51,22 @@ export class HTMLCleaner {
     try {
       const response = await fetch(url, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; GEOBot/1.0; +https://example.com/bot)",
+          "User-Agent":
+            "Mozilla/5.0 (compatible; GEOBot/1.0; +https://example.com/bot)",
         },
         // 10 秒超时
         signal: AbortSignal.timeout(10000),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const contentType = response.headers.get("content-type");
       if (!contentType?.includes("text/html")) {
         throw new Error(`不支持的内容类型: ${contentType}`);
       }
-      
+
       return await response.text();
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
@@ -70,15 +75,18 @@ export class HTMLCleaner {
       throw error;
     }
   }
-  
+
   /**
    * 使用 Readability 解析 HTML
    */
-  private parseWithReadability(html: string, url: string): ParsedArticle | null {
+  private parseWithReadability(
+    html: string,
+    url: string,
+  ): ParsedArticle | null {
     // 创建虚拟 DOM
     const dom = new JSDOM(html, { url });
     const document = dom.window.document;
-    
+
     // 使用 Readability 解析
     const reader = new Readability(document, {
       // 调试模式（可选）
@@ -88,17 +96,36 @@ export class HTMLCleaner {
       // 字符阈值
       charThreshold: 500,
     });
-    
-    const article = reader.parse();
-    
+
+    const result = reader.parse();
+
+    // 如果解析失败，返回 null
+    if (!result) {
+      return null;
+    }
+
+    // 将 undefined 转换为 null，确保类型匹配
+    const article: ParsedArticle = {
+      title: result.title ?? null,
+      content: result.content ?? null,
+      textContent: result.textContent ?? null,
+      length: result.length ?? null,
+      excerpt: result.excerpt ?? null,
+      byline: result.byline ?? null,
+      dir: result.dir ?? null,
+      siteName: result.siteName ?? null,
+      lang: result.lang ?? null,
+      publishedTime: result.publishedTime ?? null,
+    };
+
     return article;
   }
-  
   /**
    * 验证清洗后的内容是否有效
    */
-  validateArticle(article: ParsedArticle): boolean {
+  validateArticle(article: ParsedArticle | null): boolean {
     return !!(
+      article &&
       article.title &&
       article.content &&
       article.textContent &&

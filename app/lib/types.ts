@@ -1,8 +1,7 @@
 // lib/types.ts
 
-/**
- * 中间表示（Intermediate Representation）类型定义
- */
+// lib/types.ts
+
 export interface IR {
   metadata: {
     url: string;
@@ -39,10 +38,10 @@ export interface IR {
   };
   entities?: Array<{
     type: "Product" | "Article" | "Person" | "Organization" | "Event";
-    properties: Record<string, any>;
+    properties: Record<string, never>;
   }>;
   semantic: {
-    mainEntityType: "Product" | "Article" | "BlogPosting" | "NewsArticle" | "WebPage";
+    mainEntityType: SchemaType; // 改用 SchemaType
     keywords?: string[];
     readingTime?: number;
     wordCount?: number;
@@ -58,16 +57,16 @@ export interface IR {
  * Readability 返回的文章类型
  */
 export interface ParsedArticle {
-  title: string;
-  content: string;
-  textContent: string;
-  length: number;
-  excerpt: string;
-  byline?: string;
-  dir?: string;
-  siteName?: string;
-  lang?: string;
-  publishedTime?: string;
+  title: string | null;
+  content: string | null;
+  textContent: string | null;
+  length: number | null;
+  excerpt: string | null;
+  byline: string | null;
+  dir: string | null;
+  siteName: string | null;
+  lang: string | null;
+  publishedTime: string | null;
 }
 
 /**
@@ -77,7 +76,7 @@ export interface ParseResponse {
   success: boolean;
   ir?: IR;
   geoHTML?: string;
-  originalHTML?: string;  // 原始 HTML（用于对比展示）
+  originalHTML?: string; // 原始 HTML（用于对比展示）
   originalTitle?: string;
   error?: string;
 }
@@ -85,9 +84,9 @@ export interface ParseResponse {
 /**
  * Schema.org 实体类型
  */
-export type SchemaType = 
+export type SchemaType =
   | "Product"
-  | "Article" 
+  | "Article"
   | "BlogPosting"
   | "NewsArticle"
   | "WebPage"
