@@ -41,7 +41,7 @@ export class IRGenerator {
     const wordCount = article.textContent?.length || 0;
     const readingTime = Math.ceil(wordCount / 200);
 
-    const ir: IR = {
+    return {
       metadata: {
         url,
         title: article.title || "",
@@ -71,8 +71,6 @@ export class IRGenerator {
         length: article.length || 0,
       },
     };
-
-    return ir;
   }
   /**
    * 提取标题（h1-h6）
@@ -226,7 +224,6 @@ export class IRGenerator {
     $: cheerio.CheerioAPI,
   ): SchemaType {
     const content = (article.textContent || "").toLowerCase();
-    const title = (article.title || "").toLowerCase();
 
     // 检测是否为产品页面
     if (
@@ -281,12 +278,10 @@ export class IRGenerator {
     });
 
     // 取前 10 个高频词
-    const keywords = Array.from(wordCount.entries())
+    return Array.from(wordCount.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([word]) => word);
-
-    return keywords;
   }
 
   /**
