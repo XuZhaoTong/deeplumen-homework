@@ -1,7 +1,5 @@
 // lib/types.ts
 
-// lib/types.ts
-
 export interface IR {
   metadata: {
     url: string;
